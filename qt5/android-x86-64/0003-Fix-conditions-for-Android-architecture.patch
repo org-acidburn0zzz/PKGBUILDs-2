@@ -1,0 +1,54 @@
+From 576c1681f59dbb473f4a3d394bf57997cf817378 Mon Sep 17 00:00:00 2001
+From: Martchus <martchus@gmx.net>
+Date: Sat, 14 Dec 2019 16:47:03 +0100
+Subject: [PATCH 3/3] Fix conditions for Android architecture
+
+Change-Id: Iefab383d7b0ee80f21d46d1fc87600c3867c3de5
+---
+ src/gui/image/image.pri       | 4 ++--
+ src/gui/painting/painting.pri | 6 +++---
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/gui/image/image.pri b/src/gui/image/image.pri
+index 1f42f28d1e..ab63986e6d 100644
+--- a/src/gui/image/image.pri
++++ b/src/gui/image/image.pri
+@@ -97,10 +97,10 @@ qtConfig(png) {
+     MIPS_DSPR2_ASM += image/qimage_mips_dspr2_asm.S
+ } else {
+     # see https://developer.android.com/ndk/guides/abis
+-    arm64-v8a {
++    equals(ANDROID_TARGET_ARCH, arm64-v8a) {
+         SOURCES += image/qimage_neon.cpp
+     }
+-    x86 | x86_64 {
++    equals(ANDROID_TARGET_ARCH, x86) | equals(ANDROID_TARGET_ARCH, x86_64) {
+         DEFINES += QT_COMPILER_SUPPORTS_SSE2 QT_COMPILER_SUPPORTS_SSE3 QT_COMPILER_SUPPORTS_SSSE3
+         SOURCES += image/qimage_ssse3.cpp
+     }
+diff --git a/src/gui/painting/painting.pri b/src/gui/painting/painting.pri
+index fcf6488edd..0cbd2481ad 100644
+--- a/src/gui/painting/painting.pri
++++ b/src/gui/painting/painting.pri
+@@ -158,15 +158,15 @@ gcc:equals(QT_GCC_MAJOR_VERSION, 5) {
+     MIPS_DSPR2_ASM += painting/qdrawhelper_mips_dspr2_asm.S
+ } else {
+     # see https://developer.android.com/ndk/guides/abis
+-    x86 | x86_64 {
++    equals(ANDROID_TARGET_ARCH, x86) | equals(ANDROID_TARGET_ARCH, x86_64) {
+         DEFINES += QT_COMPILER_SUPPORTS_SSE2 QT_COMPILER_SUPPORTS_SSE3 QT_COMPILER_SUPPORTS_SSSE3
+         SOURCES += painting/qdrawhelper_sse2.cpp painting/qdrawhelper_ssse3.cpp
+     }
+-    x86_64 {
++    equals(ANDROID_TARGET_ARCH, x86_64) {
+         DEFINES += QT_COMPILER_SUPPORTS_SSE4_1 QT_COMPILER_SUPPORTS_SSE4_2
+         SOURCES += painting/qdrawhelper_sse4.cpp painting/qimagescale_sse4.cpp
+     }
+-    arm64-v8a {
++    equals(ANDROID_TARGET_ARCH, arm64-v8a) {
+         SOURCES += painting/qdrawhelper_neon.cpp painting/qimagescale_neon.cpp
+         HEADERS += painting/qdrawhelper_neon_p.h
+     }
+-- 
+2.24.0
+

@@ -10,7 +10,7 @@ _android_arch=arm64-v8a
 _android_platform=22
 
 pkgname=android-$_pkg_arch-qt5
-pkgver=5.13.2
+pkgver=5.14.0
 pkgrel=1
 pkgdesc="Qt 5 for Android"
 arch=('x86_64')
@@ -25,10 +25,10 @@ makedepends=('libgl'
              'gperf'
              'libxslt'
              'fontconfig'
+             'ninja'
              'java-environment-openjdk<=8'
              'android-environment'
-             'android-pkg-config'
-             "android-$_pkg_arch-openssl")
+             'android-pkg-config')
 depends=('java-runtime-headless-openjdk<=8'
          'apache-ant'
          'android-ndk'
@@ -36,9 +36,12 @@ depends=('java-runtime-headless-openjdk<=8'
          'android-sdk'
          'android-sdk-build-tools'
          'android-sdk-platform-tools'
-         "android-$_pkg_arch-zlib"
+         "android-$_pkg_arch-libjpeg-turbo"
          "android-$_pkg_arch-libpng"
-         "android-$_pkg_arch-libjpeg-turbo")
+         "android-$_pkg_arch-libwebp"
+         "android-$_pkg_arch-libtiff"
+         "android-$_pkg_arch-openssl"
+         "android-$_pkg_arch-zlib")
 groups=('android-qt5')
 conflicts=("android-qt5-${_android_arch}")
 replaces=("android-qt5-${_android_arch}")
@@ -68,42 +71,39 @@ optdepends+=("android-$_pkg_arch-openssl: SSL support for Qt Network")
 options=(!strip !buildflags staticlibs !emptydirs)
 _pkgfqn="qt-everywhere-src-${pkgver}"
 source=("http://download.qt-project.org/official_releases/qt/${pkgver:0:4}/${pkgver}/single/${_pkgfqn}.tar.xz"
-        '0001-Fix-clang-libc-build-under-Android.patch'
-        '0002-Fix-androiddeployqt-search-paths.patch'
-        '0003-Support-pkg-config-under-Android.patch'
-	'0004-Use-pkg-config-to-find-libjpeg.patch'
-        '0001-Disable-mapboxgl.patch')
-sha256sums=('adf00266dc38352a166a9739f1a24a1e36f1be9c04bf72e16e142a256436974e'
-            '29bcb93f9c79ad4b0709efa42694ed917b6e4cfce69a805e79a7dc3144be7765'
-            '7a5520311ba2edee2ffcd546cd6e08248c8f73deed33bd8075649577f8cb1446'
-            '5c3f0725f3c27263661ff5ebb4b279e4483de8ed70dee4fe42a84d31b3f2e4a9'
-            '4f3ba22616040a2979bfdf840b44bf105374ea2fac866c42977ad7ec6e87ddcc'
-            '6151b784050f9d4ef3eec22dd33360d3f566d4834592f1171df91a10c95fab77')
+        '0001-Support-pkg-config-under-Android.patch'
+        '0002-Use-pkg-config-to-find-libjpeg.patch'
+        '0003-Fix-conditions-for-Android-architecture.patch'
+        '0001-Use-pkg-config-to-find-dependencies.patch')
+sha256sums=('be9a77cd4e1f9d70b58621d0753be19ea498e6b0da0398753e5038426f76a8ba'
+            'd999b2a8e3136b5758a3fd9588d7720116b95d5bb2262f00629465fdda99916d'
+            '69f56b836659bdd6f0fada26a51629f1eff511fcf71f2d7761285d598b2a6115'
+            'b6030230580af6251c4c3769a314e954d9ebbf369be17538636b31353156f382'
+            '5f22b257c0e8a02a014c9a5b7aac2b83cad3c62f933b8cfeb167841fd1806b7c')
 
 prepare() {
     export ANDROID_MINIMUM_PLATFORM=${_android_platform}
     source android-env ${_pkg_arch}
 
+    check_ndk_version_ge_than 18.0
+    check_android_platform
+
     cd ${_pkgfqn}
-    	
+
     pushd qtbase
-    patch -Np1 -i "../../0001-Fix-clang-libc-build-under-Android.patch"
-    #patch -Np1 -i "../../0002-Fix-androiddeployqt-search-paths.patch"
-    patch -Np1 -i "../../0003-Support-pkg-config-under-Android.patch"
-    patch -Np1 -i "../../0004-Use-pkg-config-to-find-libjpeg.patch"
+    patch -Np1 -i "../../0001-Support-pkg-config-under-Android.patch"
+    patch -Np1 -i "../../0002-Use-pkg-config-to-find-libjpeg.patch"
+    patch -Np1 -i "../../0003-Fix-conditions-for-Android-architecture.patch"
     popd
 
-    pushd qtlocation
-    # skip building mapboxgl as it increases compile time significantly and
-    # likely not a lot of people actually using it; if you need it, just remove the
-    # following line:
-    patch -Np1 -i "../../0001-Disable-mapboxgl.patch"
+    pushd qtimageformats
+    patch -Np1 -i "../../0001-Use-pkg-config-to-find-dependencies.patch"
     popd
 
-    sed -i "s/android-16/android-$ANDROID_MINIMUM_PLATFORM/g" qtbase/mkspecs/features/android/sdk.prf
-    sed -i "s/android-16/android-$ANDROID_MINIMUM_PLATFORM/g" qtbase/src/android/jar/jar.pro
-    sed -i "s/android-16/android-$ANDROID_MINIMUM_PLATFORM/g" qtgamepad/src/plugins/gamepads/android/jar/jar.pro
-    sed -i "s/android-16/android-$ANDROID_MINIMUM_PLATFORM/g" qtbase/configure.pri
+    # specifying the android ABI is broken since Qt 5.14.0
+    sed -i s:'DEFAULT_ANDROID_TARGET_ARCH=$${QT_ARCH}:DEFAULT_ANDROID_TARGET_ARCH='${ANDROID_ABI}':g' qtbase/mkspecs/features/android/default_pre.prf
+
+    sed -i "s/android-21/android-$ANDROID_MINIMUM_PLATFORM/g" qtbase/configure.pri
 }
 
 build() {
@@ -126,23 +126,29 @@ build() {
         -xplatform android-clang
         -nomake tests
         -nomake examples
-        -android-ndk ${ANDROID_NDK_HOME}
         -android-sdk ${ANDROID_HOME}
+        -android-ndk ${ANDROID_NDK_HOME}
         -android-ndk-host linux-x86_64
-        -android-toolchain-version 4.9
+        -android-ndk-platform ${ANDROID_NDK_PLATFORM}
+        -android-abis ${ANDROID_ABI}
         -skip qtserialport
+        -skip qtwebengine
         -no-warnings-are-errors
         -pkg-config
         -system-zlib
         -system-libpng
         -system-libjpeg
+        -system-webp
+        -system-tiff
+        -no-feature-geoservices_mapbox
+        -no-feature-geoservices_mapboxgl
         -qt-freetype
         -openssl-runtime
-        -android-arch ${ANDROID_ABI}
-        -android-ndk-platform ${ANDROID_NDK_PLATFORM}
-        -recheck-all
+        -verbose
         -optimized-qmake
         -I${ANDROID_PREFIX}/include"
+
+    # note: use -recheck-all and/or -redo to continue
 
     [[ $ANDROID_DEBUG_BUILD ]] \
         && configue_opts+=' -debug-and-release' \

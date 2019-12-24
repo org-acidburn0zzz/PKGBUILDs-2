@@ -1,0 +1,56 @@
+From 2a2b4224e0b7998cb8b0f4008f3235212d99d87d Mon Sep 17 00:00:00 2001
+From: Martchus <martchus@gmx.net>
+Date: Sun, 15 Dec 2019 16:18:22 +0100
+Subject: [PATCH] Use pkg-config to find dependencies
+
+---
+ src/imageformats/configure.json | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/src/imageformats/configure.json b/src/imageformats/configure.json
+index 3b38fae..5ece40b 100644
+--- a/src/imageformats/configure.json
++++ b/src/imageformats/configure.json
+@@ -34,7 +34,8 @@
+                 ]
+             },
+             "sources": [
+-                "-ljasper"
++                { "type": "pkgConfig", "args": "jasper" },
++                { "libs": "-ljasper" }
+             ]
+         },
+         "mng": {
+@@ -55,7 +56,8 @@
+                 ]
+             },
+             "sources": [
+-                "-lmng"
++                { "type": "pkgConfig", "args": "libmng" },
++                { "libs": "-lmng" }
+             ]
+         },
+         "tiff": {
+@@ -82,7 +84,8 @@
+                 ]
+             },
+             "sources": [
+-                "-ltiff"
++                { "type": "pkgConfig", "args": "libtiff-4" },
++                { "libs": "-ltiff" }
+             ]
+         },
+         "webp": {
+@@ -112,7 +115,8 @@
+                 ]
+             },
+             "sources": [
+-                "-lwebp -lwebpdemux -lwebpmux"
++                { "type": "pkgConfig", "args": "libwebp libwebpmux libwebpdemux" },
++                { "libs": "-lwebp -lwebpdemux -lwebpmux" }
+             ]
+         }
+     },
+-- 
+2.24.1
+
