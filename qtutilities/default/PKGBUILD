@@ -5,7 +5,7 @@
 
 _reponame=qtutilities
 pkgname=qtutilities
-pkgver=6.0.6
+pkgver=6.1.0
 pkgrel=1
 arch=('i686' 'x86_64' 'armv6h' 'armv7h' 'aarch64')
 pkgdesc='Common Qt related C++ classes and routines used by my applications such as dialogs, widgets and models'
@@ -25,6 +25,11 @@ build() {
     -DBUILD_SHARED_LIBS:BOOL=ON \
     .
   make
+}
+
+check() {
+  cd "$srcdir/${PROJECT_DIR_NAME:-$_reponame}"
+  make QT_QPA_PLATFORM=offscreen check
 }
 
 package() {
